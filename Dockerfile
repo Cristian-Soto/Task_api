@@ -1,18 +1,21 @@
-FROM python:3.11
+# Imagen base
+FROM python:3.12.3-alpine
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH=/app
-ENV DJANGO_SETTINGS_MODULE=config.settings
-
-
-EXPOSE 8000
-
+# Establecer el directorio de trabajo
 WORKDIR /app
 
-COPY backend/ /app/
+# Copiar los archivos del proyecto
+COPY . .
 
-RUN pip install --upgrade pip
-RUN pip install django djangorestframework psycopg2-binary python-decouple drf-yasg djangorestframework-simplejwt
+# Instalar dependencias
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
+# Establecer variable de entorno para Django
+ENV DJANGO_SETTINGS_MODULE=config.settings
+
+# Exponer el puerto
+EXPOSE 8000
+
+# Comando por defecto al iniciar el contenedor
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

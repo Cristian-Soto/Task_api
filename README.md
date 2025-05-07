@@ -1,14 +1,21 @@
-# 🧠 Task API - API RESTful de Gestión de Tareas
+# 🐍 Django REST API con PostgreSQL en Docker
 
-Proyecto desarrollado con **Django**, **PostgreSQL** y **Docker**, que expone una API RESTful para la gestión de tareas personales. Incluye autenticación con JWT y está listo para producción o pruebas locales con Docker.
+Este proyecto es una API RESTful construida con Django, Django REST Framework y PostgreSQL, todo en contenedores Docker.
+
+## 🚀 Tecnologías utilizadas
+
+- Python 3.11
+- Django 5.2
+- Django REST Framework
+- PostgreSQL
+- Docker & Docker Compose
 
 ---
 
-## ⚙️ Tecnologías
+## ⚙️ Configuración inicial
 
-- Python 3.11
-- Django + Django REST Framework
-- PostgreSQL
-- Docker + Docker Compose
-- Autenticación JWT (Simple JWT)
-- Swagger (drf-yasg)
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/tu_usuario/tu_repo.git
+cd tu_repo
