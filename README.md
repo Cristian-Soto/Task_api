@@ -86,11 +86,36 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 - **Obtener token**: `POST /api/token/`
 - **Refrescar token**: `POST /api/token/refresh/`
 
+### Usuarios
+- **Registrar nuevo usuario**: `POST /api/register/`
+- **Obtener/Actualizar perfil de usuario**: `GET/PUT /api/user/`
+- **Obtener perfil de usuario (alternativo)**: `GET /api/users/me/`
+
 ### Tareas
 - **Listar/Crear tareas**: `GET/POST /api/tasks/`
 - **Obtener/Actualizar/Eliminar tarea**: `GET/PUT/DELETE /api/tasks/{id}/`
 
 ### Ejemplos de uso con Postman
+
+#### Registrar un nuevo usuario:
+- Método: `POST`
+- URL: `http://localhost:8000/api/register/`
+- Body:
+```json
+{
+    "username": "nuevo_usuario",
+    "email": "usuario@ejemplo.com",
+    "password": "contraseña_segura",
+    "password2": "contraseña_segura",
+    "first_name": "Nombre",
+    "last_name": "Apellido"
+}
+```
+
+#### Obtener perfil de usuario:
+- Método: `GET`
+- URL: `http://localhost:8000/api/user/` o `http://localhost:8000/api/users/me/`
+- Headers: `Authorization: Bearer tu_token`
 
 #### Crear una tarea:
 - Método: `POST`
