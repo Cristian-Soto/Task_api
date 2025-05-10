@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from backend.tasks.models import Task
-from backend.tasks.serializers import TaskSerializer
+from .models import Task
+from .serializers import TaskSerializer
 
 # Create your views here.
 
