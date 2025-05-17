@@ -12,7 +12,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
 # Establecer variable de entorno para Django
-ENV DJANGO_SETTINGS_MODULE=config.settings
+ENV DJANGO_SETTINGS_MODULE=backend.config.settings
 
 # Exponer el puerto
 EXPOSE 8000
