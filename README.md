@@ -7,9 +7,9 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Un sistema de gestión de tareas **robusto y escalable** implementado como API RESTful, construido con Django y Django REST Framework. La aplicación proporciona una plataforma completa para gestionar tareas con múltiples estados, autenticación segura, y una API bien documentada.
+Un sistema de gestión de tareas **robusto y escalable** implementado como API RESTful, construido con Django y Django REST Framework. La aplicación proporciona una plataforma completa para gestionar tareas con múltiples estados, prioridades, autenticación segura, y una API bien documentada.
 
-> 🌟 **Características destacadas**: Estados de tareas personalizados (pendiente, en proceso, completada), autenticación JWT, documentación interactiva con Swagger, y containerización con Docker.
+> 🌟 **Características destacadas**: Estados de tareas personalizados (pendiente, en proceso, completada), prioridades de tareas (baja, media, alta), autenticación JWT, documentación interactiva con Swagger, y containerización con Docker.
 
 ![System Architecture](https://via.placeholder.com/800x400?text=Task+API+Architecture)
 
@@ -156,6 +156,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
   - Parámetros de filtrado: `?search=texto` (buscar en título/descripción)
   - Parámetros de ordenación: `?ordering=created_at` o `?ordering=-created_at` (descendente)
   - Filtrar por estado: `?status=pending` | `in_progress` | `completed`
+  - Filtrar por prioridad: `?priority=low` | `medium` | `high`
 - **Crear tarea**: `POST /api/tasks/` - Añadir una nueva tarea
 - **Obtener tarea**: `GET /api/tasks/{id}/` - Ver detalles de una tarea específica
 - **Actualizar tarea**: `PUT /api/tasks/{id}/` - Modificar una tarea existente
@@ -241,6 +242,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
     "title": "Implementar autenticación",
     "description": "Configurar JWT y permisos de usuario",
     "status": "in_progress",
+    "priority": "high",
     "due_date": "2025-06-15T12:00:00Z"
 }
 ```
@@ -252,6 +254,8 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
     "description": "Configurar JWT y permisos de usuario",
     "status": "in_progress",
     "status_display": "En proceso",
+    "priority": "high",
+    "priority_display": "Alta",
     "created_at": "2025-05-21T15:30:45.123456Z",
     "due_date": "2025-06-15T12:00:00Z",
     "is_overdue": false,
@@ -263,10 +267,11 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 
 #### Listar tareas con filtros:
 - Método: `GET`
-- URL: `http://localhost:8000/api/tasks/?status=pending&ordering=-created_at`
+- URL: `http://localhost:8000/api/tasks/?status=pending&priority=high&ordering=-created_at`
 - Headers: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
 - Filtros disponibles:
   - `status`: Filtrar por estado (`pending`, `in_progress`, `completed`)
+  - `priority`: Filtrar por prioridad (`low`, `medium`, `high`)
   - `has_due_date`: Filtrar tareas con fecha límite (`true` o `false`)
   - `is_overdue`: Filtrar tareas vencidas (`true` o `false`)
   - `due_date_before`: Filtrar tareas con fecha límite anterior a una fecha (`YYYY-MM-DD`)
@@ -276,11 +281,13 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
   - `ordering=-due_date`: Ordenar por fecha límite descendente
   - `ordering=created_at`: Ordenar por fecha de creación ascendente
   - `ordering=-created_at`: Ordenar por fecha de creación descendente
+  - `ordering=priority`: Ordenar por prioridad ascendente
+  - `ordering=-priority`: Ordenar por prioridad descendente
 - Respuesta:
 ```json
 {
     "count": 10,
-    "next": "http://localhost:8000/api/tasks/?page=2&status=pending",
+    "next": "http://localhost:8000/api/tasks/?page=2&status=pending&priority=high",
     "previous": null,
     "results": [
         {
@@ -289,6 +296,8 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
             "description": "Definir tareas para el próximo sprint",
             "status": "pending",
             "status_display": "Pendiente",
+            "priority": "high",
+            "priority_display": "Alta",
             "created_at": "2025-05-20T09:15:30.123456Z",
             "due_date": "2025-06-10T18:00:00Z",
             "is_overdue": false,
@@ -300,9 +309,18 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
     ],
     "meta": {
         "total_count": 15,
-        "pending_count": 10,
-        "in_progress_count": 3,
-        "completed_count": 2
+        "status_counts": {
+            "pending_count": 10,
+            "in_progress_count": 3,
+            "completed_count": 2
+        },
+        "priority_counts": {
+            "low_count": 4,
+            "medium_count": 6,
+            "high_count": 5
+        },
+        "overdue_count": 2,
+        "tasks_with_due_date": 12
     }
 }
 ```
@@ -381,6 +399,15 @@ El sistema implementa un flujo de trabajo de tareas con los siguientes estados:
 | En proceso | `in_progress` | Tarea en la que se está trabajando |
 | Completada | `completed` | Tarea finalizada |
 
+### Prioridades de tareas
+El sistema permite asignar prioridades a las tareas para una mejor organización:
+
+| Prioridad | Valor en API | Descripción |
+|-----------|--------------|-------------|
+| Baja | `low` | Tareas de baja importancia o urgencia |
+| Media | `medium` | Tareas con importancia moderada (valor predeterminado) |
+| Alta | `high` | Tareas críticas o urgentes que requieren atención inmediata |
+
 ### Fecha límite y campos calculados
 El sistema incluye campos relacionados con la fecha límite para gestionar mejor los tiempos de las tareas:
 
@@ -455,9 +482,10 @@ Si los tokens no funcionan:
 
 ### Sistema de Tareas
 - **Estados de tareas**: Las tareas pueden tener tres estados: "pendiente", "en proceso" y "completada"
-- **Filtrado y búsqueda**: Filtra tareas por título, descripción y estado
-- **Ordenamiento**: Ordena tareas por fecha, título o estado
-- **Estadísticas**: La API proporciona estadísticas sobre tareas pendientes, en proceso y completadas
+- **Prioridades**: Las tareas pueden tener tres niveles de prioridad: "baja", "media" y "alta"
+- **Filtrado y búsqueda**: Filtra tareas por título, descripción, estado y prioridad
+- **Ordenamiento**: Ordena tareas por fecha, título, estado o prioridad
+- **Estadísticas**: La API proporciona estadísticas sobre tareas por estado y prioridad
 
 ### Gestión de usuarios
 - **Registro seguro**: Validación robusta de contraseñas y datos de usuario
@@ -528,6 +556,7 @@ docker-compose exec web python manage.py test users
 
 Características planeadas para futuras versiones:
 
+- [x] Prioridades para tareas (baja, media, alta)
 - [ ] Categorías para tareas
 - [ ] Tareas recurrentes
 - [ ] Notificaciones por correo electrónico

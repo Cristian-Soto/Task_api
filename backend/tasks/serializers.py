@@ -13,11 +13,13 @@ class TaskSerializer(serializers.ModelSerializer):
     
     Attributes:
         status_display (str): Campo de solo lectura que muestra el texto descriptivo del estado
+        priority_display (str): Campo de solo lectura que muestra el texto descriptivo de la prioridad
         username (str): Campo de solo lectura que muestra el nombre del usuario propietario
         is_overdue (bool): Campo calculado que indica si la tarea está vencida
         days_remaining (int): Campo calculado con los días restantes hasta la fecha límite
     """
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
     username = serializers.ReadOnlyField(source='user.username')
     is_overdue = serializers.SerializerMethodField(read_only=True)
     days_remaining = serializers.SerializerMethodField(read_only=True)
@@ -26,11 +28,11 @@ class TaskSerializer(serializers.ModelSerializer):
         model = Task
         fields = [
             'id', 'title', 'description', 'status', 'status_display', 
-            'created_at', 'due_date', 'is_overdue', 'days_remaining',
-            'user', 'username'
+            'priority', 'priority_display', 'created_at', 'due_date', 
+            'is_overdue', 'days_remaining', 'user', 'username'
         ]
         read_only_fields = ['id', 'created_at', 'user', 'status_display', 
-                            'username', 'is_overdue', 'days_remaining']
+                            'priority_display', 'username', 'is_overdue', 'days_remaining']
     
     def get_is_overdue(self, obj):
         """
@@ -93,4 +95,22 @@ class TaskSerializer(serializers.ModelSerializer):
         """
         if value and value < timezone.now():
             raise serializers.ValidationError("La fecha límite debe ser una fecha futura.")
+        return value
+        
+    def validate_priority(self, value):
+        """
+        Valida que la prioridad sea una de las opciones permitidas.
+        
+        Args:
+            value (str): La prioridad a validar
+            
+        Returns:
+            str: La prioridad validada
+            
+        Raises:
+            serializers.ValidationError: Si la prioridad no es válida
+        """
+        valid_priorities = dict(Task.PRIORITY_CHOICES).keys()
+        if value not in valid_priorities:
+            raise serializers.ValidationError(f"La prioridad debe ser una de las siguientes: {', '.join(valid_priorities)}")
         return value

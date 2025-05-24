@@ -31,6 +31,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
     
     Filtros disponibles:
     * status: Filtrar por estado (pending, in_progress, completed)
+    * priority: Filtrar por prioridad (low, medium, high)
     * has_due_date: Filtrar tareas con fecha límite (true, false)
     * is_overdue: Filtrar tareas vencidas (true, false) 
     * due_date_before: Filtrar tareas con fecha límite anterior a una fecha (YYYY-MM-DD)
@@ -40,7 +41,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
-    ordering_fields = ['created_at', 'status', 'title', 'due_date']
+    ordering_fields = ['created_at', 'status', 'priority', 'title', 'due_date']
     ordering = ['-created_at']  # Ordenar por fecha de creación descendente por defecto
     
     def get_queryset(self):
@@ -49,6 +50,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
         
         Aplica filtros adicionales basados en parámetros de consulta:
         - status: Filtra por estado de tarea
+        - priority: Filtra por prioridad de tarea
         - has_due_date: Filtra tareas con/sin fecha límite
         - is_overdue: Filtra tareas vencidas/no vencidas
         - due_date_before: Filtra tareas con fecha límite antes de la fecha especificada
@@ -65,6 +67,11 @@ class TaskListCreateView(generics.ListCreateAPIView):
         status = self.request.query_params.get('status', None)
         if status:
             queryset = queryset.filter(status=status)
+        
+        # Filtro por prioridad
+        priority = self.request.query_params.get('priority', None)
+        if priority:
+            queryset = queryset.filter(priority=priority)
         
         # Filtro por presencia de fecha límite
         has_due_date = self.request.query_params.get('has_due_date', None)
@@ -114,13 +121,18 @@ class TaskListCreateView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
         
     def list(self, request, *args, **kwargs):
-        """Lista las tareas con información adicional sobre conteo por estado."""
+        """Lista las tareas con información adicional sobre conteo por estado y prioridad."""
         queryset = self.filter_queryset(self.get_queryset())
         
         # Contar tareas por estado
         pending_count = queryset.filter(status=Task.STATUS_PENDING).count()
         in_progress_count = queryset.filter(status=Task.STATUS_IN_PROGRESS).count()
         completed_count = queryset.filter(status=Task.STATUS_COMPLETED).count()
+        
+        # Contar tareas por prioridad
+        low_priority_count = queryset.filter(priority=Task.PRIORITY_LOW).count()
+        medium_priority_count = queryset.filter(priority=Task.PRIORITY_MEDIUM).count()
+        high_priority_count = queryset.filter(priority=Task.PRIORITY_HIGH).count()
         
         # Serializar y devolver la respuesta
         page = self.paginate_queryset(queryset)
@@ -146,9 +158,16 @@ class TaskListCreateView(generics.ListCreateAPIView):
         
         response.data['meta'] = {
             'total_count': queryset.count(),
-            'pending_count': pending_count,
-            'in_progress_count': in_progress_count,
-            'completed_count': completed_count,
+            'status_counts': {
+                'pending_count': pending_count,
+                'in_progress_count': in_progress_count,
+                'completed_count': completed_count,
+            },
+            'priority_counts': {
+                'low_count': low_priority_count,
+                'medium_count': medium_priority_count,
+                'high_count': high_priority_count,
+            },
             'overdue_count': overdue_count,
             'tasks_with_due_date': tasks_with_due_date
         }
