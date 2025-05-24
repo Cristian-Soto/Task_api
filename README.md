@@ -240,7 +240,8 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 {
     "title": "Implementar autenticación",
     "description": "Configurar JWT y permisos de usuario",
-    "status": "in_progress"
+    "status": "in_progress",
+    "due_date": "2025-06-15T12:00:00Z"
 }
 ```
 - Respuesta:
@@ -251,7 +252,10 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
     "description": "Configurar JWT y permisos de usuario",
     "status": "in_progress",
     "status_display": "En proceso",
-    "created_at": "2023-05-21T15:30:45.123456Z",
+    "created_at": "2025-05-21T15:30:45.123456Z",
+    "due_date": "2025-06-15T12:00:00Z",
+    "is_overdue": false,
+    "days_remaining": 22,
     "user": 1,
     "username": "nuevo_usuario"
 }
@@ -261,6 +265,17 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 - Método: `GET`
 - URL: `http://localhost:8000/api/tasks/?status=pending&ordering=-created_at`
 - Headers: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+- Filtros disponibles:
+  - `status`: Filtrar por estado (`pending`, `in_progress`, `completed`)
+  - `has_due_date`: Filtrar tareas con fecha límite (`true` o `false`)
+  - `is_overdue`: Filtrar tareas vencidas (`true` o `false`)
+  - `due_date_before`: Filtrar tareas con fecha límite anterior a una fecha (`YYYY-MM-DD`)
+  - `due_date_after`: Filtrar tareas con fecha límite posterior a una fecha (`YYYY-MM-DD`)
+- Opciones de ordenamiento:
+  - `ordering=due_date`: Ordenar por fecha límite ascendente
+  - `ordering=-due_date`: Ordenar por fecha límite descendente
+  - `ordering=created_at`: Ordenar por fecha de creación ascendente
+  - `ordering=-created_at`: Ordenar por fecha de creación descendente
 - Respuesta:
 ```json
 {
@@ -274,7 +289,10 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
             "description": "Definir tareas para el próximo sprint",
             "status": "pending",
             "status_display": "Pendiente",
-            "created_at": "2023-05-20T09:15:30.123456Z",
+            "created_at": "2025-05-20T09:15:30.123456Z",
+            "due_date": "2025-06-10T18:00:00Z",
+            "is_overdue": false,
+            "days_remaining": 17,
             "user": 1,
             "username": "nuevo_usuario"
         },
@@ -362,6 +380,20 @@ El sistema implementa un flujo de trabajo de tareas con los siguientes estados:
 | Pendiente | `pending` | Tarea creada pero no iniciada |
 | En proceso | `in_progress` | Tarea en la que se está trabajando |
 | Completada | `completed` | Tarea finalizada |
+
+### Fecha límite y campos calculados
+El sistema incluye campos relacionados con la fecha límite para gestionar mejor los tiempos de las tareas:
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `due_date` | DateTimeField | Fecha y hora límite para completar la tarea (opcional) |
+| `is_overdue` | Boolean | Indica si la tarea está vencida (true si la fecha actual es posterior a la fecha límite y la tarea no está completada) |
+| `days_remaining` | Integer | Número de días restantes hasta la fecha límite (0 si la fecha ya ha pasado, null si no hay fecha límite) |
+
+**Notas importantes:**
+- La fecha límite debe ser una fecha futura al crear o actualizar una tarea
+- Una tarea se considera vencida solo si no está completada y la fecha límite ha pasado
+- Los campos `is_overdue` y `days_remaining` son campos calculados y de solo lectura
 
 ### Estructura de autenticación
 La implementación JWT utiliza las siguientes características:

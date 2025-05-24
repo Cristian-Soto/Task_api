@@ -7,13 +7,14 @@ class Task(models.Model):
     Modelo que representa una tarea en el sistema.
     
     Este modelo almacena la información relevante de las tareas, incluyendo su título,
-    descripción, estado actual, fecha de creación y el usuario al que pertenece.
+    descripción, estado actual, fecha de creación, fecha límite y el usuario al que pertenece.
     
     Attributes:
         title (str): Título descriptivo de la tarea
         description (str): Descripción detallada de la tarea (opcional)
         status (str): Estado actual de la tarea (pendiente, en proceso, completada)
         created_at (datetime): Fecha y hora de creación de la tarea
+        due_date (datetime): Fecha límite para completar la tarea (opcional)
         user (ForeignKey): Usuario propietario de la tarea
     """
     # Constantes para los estados de las tareas
@@ -36,6 +37,7 @@ class Task(models.Model):
         verbose_name="Estado"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
+    due_date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha límite")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE,

@@ -28,18 +28,86 @@ class TaskListCreateView(generics.ListCreateAPIView):
     
     El filtrado de tareas se realiza automáticamente según el usuario autenticado,
     mostrando solo las tareas que le pertenecen.
+    
+    Filtros disponibles:
+    * status: Filtrar por estado (pending, in_progress, completed)
+    * has_due_date: Filtrar tareas con fecha límite (true, false)
+    * is_overdue: Filtrar tareas vencidas (true, false) 
+    * due_date_before: Filtrar tareas con fecha límite anterior a una fecha (YYYY-MM-DD)
+    * due_date_after: Filtrar tareas con fecha límite posterior a una fecha (YYYY-MM-DD)
     """
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
-    ordering_fields = ['created_at', 'status', 'title']
+    ordering_fields = ['created_at', 'status', 'title', 'due_date']
     ordering = ['-created_at']  # Ordenar por fecha de creación descendente por defecto
     
     def get_queryset(self):
-        """Retorna las tareas del usuario autenticado."""
+        """
+        Retorna las tareas del usuario autenticado.
+        
+        Aplica filtros adicionales basados en parámetros de consulta:
+        - status: Filtra por estado de tarea
+        - has_due_date: Filtra tareas con/sin fecha límite
+        - is_overdue: Filtra tareas vencidas/no vencidas
+        - due_date_before: Filtra tareas con fecha límite antes de la fecha especificada
+        - due_date_after: Filtra tareas con fecha límite después de la fecha especificada
+        """
+        from django.utils import timezone
+        from datetime import datetime
+        from django.db.models import Q
+        
         user = self.request.user
-        return Task.objects.filter(user=user)
+        queryset = Task.objects.filter(user=user)
+        
+        # Filtro por estado
+        status = self.request.query_params.get('status', None)
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Filtro por presencia de fecha límite
+        has_due_date = self.request.query_params.get('has_due_date', None)
+        if has_due_date is not None:
+            has_due = has_due_date.lower() == 'true'
+            if has_due:
+                queryset = queryset.filter(due_date__isnull=False)
+            else:
+                queryset = queryset.filter(due_date__isnull=True)
+        
+        # Filtro por tareas vencidas
+        is_overdue = self.request.query_params.get('is_overdue', None)
+        if is_overdue is not None:
+            is_over = is_overdue.lower() == 'true'
+            now = timezone.now()
+            if is_over:
+                queryset = queryset.filter(
+                    due_date__lt=now,
+                    status__in=[Task.STATUS_PENDING, Task.STATUS_IN_PROGRESS]
+                )
+            else:
+                queryset = queryset.filter(
+                    Q(due_date__gte=now) | Q(status=Task.STATUS_COMPLETED) | Q(due_date__isnull=True)
+                )
+        
+        # Filtros por rango de fecha
+        due_date_before = self.request.query_params.get('due_date_before', None)
+        if due_date_before:
+            try:
+                date = datetime.strptime(due_date_before, '%Y-%m-%d').date()
+                queryset = queryset.filter(due_date__date__lte=date)
+            except ValueError:
+                pass  # Ignorar valores de fecha inválidos
+        
+        due_date_after = self.request.query_params.get('due_date_after', None)
+        if due_date_after:
+            try:
+                date = datetime.strptime(due_date_after, '%Y-%m-%d').date()
+                queryset = queryset.filter(due_date__date__gte=date)
+            except ValueError:
+                pass  # Ignorar valores de fecha inválidos
+                
+        return queryset
 
     def perform_create(self, serializer):
         """Asigna el usuario autenticado como propietario de la tarea."""
@@ -64,11 +132,25 @@ class TaskListCreateView(generics.ListCreateAPIView):
             response = Response(serializer.data)
         
         # Añadir metadatos
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Contar tareas vencidas
+        overdue_count = queryset.filter(
+            due_date__lt=now,
+            status__in=[Task.STATUS_PENDING, Task.STATUS_IN_PROGRESS]
+        ).count()
+        
+        # Contar tareas con fecha límite
+        tasks_with_due_date = queryset.filter(due_date__isnull=False).count()
+        
         response.data['meta'] = {
             'total_count': queryset.count(),
             'pending_count': pending_count,
             'in_progress_count': in_progress_count,
-            'completed_count': completed_count
+            'completed_count': completed_count,
+            'overdue_count': overdue_count,
+            'tasks_with_due_date': tasks_with_due_date
         }
         
         return response
